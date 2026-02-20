@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inversión – Capitalización Mensual</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1E3A8A;
+      --blue-light: #1e40af;
+      --green: #10B981;
+      --amber: #F59E0B;
+      --indigo: #6366F1;
+      --gray: #6B7280;
+      --bg: #F9FAFB;
+      --card-bg: #F3F4F6;
+      --border: #E5E7EB;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    #sidebar {
+      width: 280px;
+      min-width: 240px;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    #sidebar .logo {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    #sidebar .logo img {
+      max-width: 200px;
+      width: 100%;
+      height: auto;
+    }
+
+    #sidebar hr { border: none; border-top: 1px solid var(--border); }
+
+    #sidebar h2 {
+      font-size: 1rem;
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 0.85rem;
+      color: var(--gray);
+      font-weight: 600;
+    }
+
+    .input-group input[type="number"] {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      width: 100%;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .input-group input:focus { border-color: var(--blue); }
+
+    .input-group input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .range-value {
+      font-size: 0.85rem;
+      color: var(--blue);
+      font-weight: 700;
+      text-align: right;
+    }
+
+    button#calcular {
+      width: 100%;
+      padding: 10px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    button#calcular:hover { background: var(--blue-light); }
+
+    .sidebar-info {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      color: var(--blue);
+    }
+
+    .sidebar-caption {
+      font-size: 0.75rem;
+      color: var(--gray);
+      text-align: center;
+      margin-top: auto;
+    }
+
+    /* ── Main content ─────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 32px 28px;
+      overflow-y: auto;
+    }
+
+    h1.main-header {
+      font-size: 2rem;
+      color: var(--blue);
+      text-align: center;
+      font-weight: 800;
+      margin-bottom: 28px;
+    }
+
+    /* KPI cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 5px solid var(--blue);
+      box-shadow: 2px 2px 5px rgba(0,0,0,.07);
+    }
+
+    .kpi-card .kpi-label {
+      font-size: 0.85rem;
+      color: var(--gray);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .kpi-card .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .kpi-card.green  { border-left-color: var(--green); }
+    .kpi-card.amber  { border-left-color: var(--amber); }
+    .kpi-card.indigo { border-left-color: var(--indigo); }
+    .kpi-card.green  .kpi-value { color: var(--green);  }
+    .kpi-card.amber  .kpi-value { color: var(--amber);  }
+    .kpi-card.indigo .kpi-value { color: var(--indigo); }
+
+    /* Tabs */
+    .tabs { margin-bottom: 0; }
+    .tab-buttons { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+    .tab-btn {
+      padding: 8px 18px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--gray);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all .15s;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Chart */
+    .chart-wrapper { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+    canvas#grafico { max-height: 420px; }
+
+    .insight-box {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      color: #1e40af;
+      margin-top: 16px;
+    }
+
+    /* Table */
+    .table-container { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    thead th {
+      background: var(--blue);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+    }
+    tbody tr:nth-child(even) { background: var(--card-bg); }
+    tbody td { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+
+    .csv-btn {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 9px 18px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .csv-btn:hover { background: var(--blue-light); }
+
+    /* Math tab */
+    .math-section { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.07); line-height: 1.7; }
+    .math-section h3 { color: var(--blue); margin-bottom: 12px; }
+    .math-section h4 { color: var(--blue); margin: 16px 0 8px; }
+    .formula-block {
+      background: #F3F4F6;
+      border-left: 4px solid var(--blue);
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-family: "Courier New", monospace;
+      font-size: 0.95rem;
+      margin: 8px 0;
+    }
+    .var-list { margin-left: 20px; }
+    .var-list li { margin-bottom: 4px; font-size: 0.88rem; }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      body { flex-direction: column; }
+      #sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+      h1.main-header { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════════════════ -->
+<aside id="sidebar">
+  <div class="logo">
+    <img src="assets/logo_dark_theme.png" alt="Logo ITM" id="sidebar-logo"
+         onerror="this.style.display='none'" />
+  </div>
+  <hr />
+  <h2>Parámetros de Inversión</h2>
+  <hr />
+
+  <div class="input-group">
+    <label for="p0">Capital Inicial ($)</label>
+    <input type="number" id="p0" value="8000000" min="100000" step="100000" />
+  </div>
+
+  <div class="input-group">
+    <label for="r">Tasa Mensual (%)</label>
+    <input type="number" id="r" value="1.2" min="0.1" step="0.1" />
+  </div>
+
+  <div class="input-group">
+    <label for="n">Plazo (Meses) — <span class="range-value" id="n-label">36</span></label>
+    <input type="range" id="n" min="6" max="120" value="36"
+           oninput="document.getElementById('n-label').textContent=this.value" />
+  </div>
+
+  <button id="calcular" onclick="calcular()">Calcular</button>
+
+  <div class="sidebar-info" id="tea-info">
+    <strong>Tasa Efectiva Anual aprox:</strong> <span id="tea-value">—</span>
+  </div>
+
+  <hr />
+  <p class="sidebar-caption">v1.0.0 – Modelo Académico</p>
+</aside>
+
+<!-- ════════════════════════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════════════════════ -->
+<main id="main">
+  <h1 class="main-header">📈 Espacio para Inversión con Capitalización Mensual</h1>
+
+  <!-- KPI cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Capital Final</div>
+      <div class="kpi-value" id="kpi-capital">—</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Ganancia Total</div>
+      <div class="kpi-value" id="kpi-ganancia">—</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Rendimiento Total</div>
+      <div class="kpi-value" id="kpi-rendimiento">—</div>
+    </div>
+    <div class="kpi-card indigo">
+      <div class="kpi-label">Tiempo Duplicación</div>
+      <div class="kpi-value" id="kpi-duplicacion">—</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <h3 style="margin-bottom:16px; color:#374151;">📊 Análisis de Crecimiento</h3>
+  <div class="tabs">
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="showTab('tab-grafico', this)">Gráfico Comparativo</button>
+      <button class="tab-btn" onclick="showTab('tab-tabla', this)">Tabla Detallada</button>
+      <button class="tab-btn" onclick="showTab('tab-math', this)">Análisis Matemático</button>
+    </div>
+
+    <!-- Tab 1: Chart -->
+    <div id="tab-grafico" class="tab-pane active">
+      <div class="chart-wrapper">
+        <canvas id="grafico"></canvas>
+      </div>
+      <div class="insight-box" id="insight-box"></div>
+    </div>
+
+    <!-- Tab 2: Table -->
+    <div id="tab-tabla" class="tab-pane">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Geométrico (Interés Compuesto)</th>
+              <th>Aritmético (Interés Simple)</th>
+              <th>Diferencia</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body"></tbody>
+        </table>
+      </div>
+      <button class="csv-btn" id="csv-btn" onclick="descargarCSV()">📥 Descargar Reporte CSV</button>
+    </div>
+
+    <!-- Tab 3: Math -->
+    <div id="tab-math" class="tab-pane">
+      <div class="math-section">
+        <h3>Fundamentos Matemáticos</h3>
+        <p>Este simulador se basa en <strong>Progresiones Geométricas</strong>, una técnica de conteo donde cada término se obtiene multiplicando el anterior por una razón constante.</p>
+
+        <h4>1. Fórmula de Interés Compuesto</h4>
+        <div class="formula-block">P<sub>n</sub> = P<sub>0</sub> · (1 + r)<sup>n</sup></div>
+        <ul class="var-list">
+          <li><strong>P<sub>n</sub></strong>: Capital final</li>
+          <li><strong>P<sub>0</sub></strong>: Capital inicial</li>
+          <li><strong>r</strong>: Tasa de interés mensual (decimal)</li>
+          <li><strong>n</strong>: Número de períodos (meses)</li>
+        </ul>
+
+        <h4>2. Tiempo de Duplicación</h4>
+        <p>Para saber cuándo se duplica el dinero (P<sub>n</sub> = 2 P<sub>0</sub>):</p>
+        <div class="formula-block">n = ln(2) / ln(1 + r)</div>
+
+        <h4>3. Diferencia con el Modelo Aritmético</h4>
+        <p>El modelo aritmético (Interés Simple) crece linealmente:</p>
+        <div class="formula-block">A<sub>n</sub> = P<sub>0</sub> + (n · P<sub>0</sub> · r)</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // ─── Financial math ───────────────────────────────────────────────────────
+  function intCompuesto(p0, r, n) { return p0 * Math.pow(1 + r, n); }
+  function intSimple(p0, r, n)    { return p0 + (n * p0 * r); }
+  function mesesDuplicacion(r)    { return r > 0 ? Math.log(2) / Math.log(1 + r) : Infinity; }
+
+  function fmt(n) {
+    return '$' + n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  function fmt2(n) {
+    return '$' + n.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ─── Chart instance ───────────────────────────────────────────────────────
+  let chartInstance = null;
+
+  // ─── Main calculation ─────────────────────────────────────────────────────
+  let lastData = [];
+
+  function calcular() {
+    const p0 = parseFloat(document.getElementById('p0').value) || 8000000;
+    const rPct = parseFloat(document.getElementById('r').value) || 1.2;
+    const n   = parseInt(document.getElementById('n').value)   || 36;
+    const r   = rPct / 100;
+
+    // Build dataset
+    const meses = [], geom = [], arit = [];
+    lastData = [];
+    for (let m = 0; m <= n; m++) {
+      const g = intCompuesto(p0, r, m);
+      const a = intSimple(p0, r, m);
+      meses.push(m);
+      geom.push(g);
+      arit.push(a);
+      lastData.push({ mes: m, geom: g, arit: a, diff: g - a });
+    }
+
+    const capitalFinal = geom[n];
+    const ganancia = capitalFinal - p0;
+    const dup = mesesDuplicacion(r);
+    const tea = (Math.pow(1 + r, 12) - 1) * 100;
+
+    // ── KPIs
+    document.getElementById('kpi-capital').textContent    = fmt(capitalFinal);
+    document.getElementById('kpi-ganancia').textContent   = '+' + fmt(ganancia);
+    document.getElementById('kpi-rendimiento').textContent = ((ganancia / p0) * 100).toFixed(1) + '%';
+    document.getElementById('kpi-duplicacion').textContent = dup.toFixed(1) + ' m';
+    document.getElementById('tea-value').textContent      = tea.toFixed(2) + '%';
+
+    // ── Chart
+    const ctx = document.getElementById('grafico').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: meses,
+        datasets: [
+          {
+            label: 'Interés Compuesto (Geométrico)',
+            data: geom,
+            borderColor: '#1E3A8A',
+            backgroundColor: 'rgba(30,58,138,.07)',
+            borderWidth: 3,
+            pointRadius: meses.length > 60 ? 0 : 3,
+            fill: false,
+            tension: 0.3,
+          },
+          {
+            label: 'Interés Simple (Aritmético)',
+            data: arit,
+            borderColor: '#EF4444',
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          title: { display: true, text: 'Comparación de Modelos de Crecimiento', font: { size: 16 } },
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y),
+            },
+          },
+        },
+        scales: {
+          x: { title: { display: true, text: 'Meses' } },
+          y: {
+            title: { display: true, text: 'Capital ($)' },
+            ticks: { callback: v => '$' + (v / 1e6).toFixed(1) + 'M' },
+          },
+        },
+      },
+    });
+
+    // ── Insight
+    document.getElementById('insight-box').innerHTML =
+      `💡 <strong>Insight</strong>: Al mes ${n}, el interés compuesto ha generado <strong>${fmt(lastData[n].diff)}</strong> más que el interés simple.`;
+
+    // ── Table
+    const tbody = document.getElementById('tabla-body');
+    tbody.innerHTML = '';
+    lastData.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row.mes}</td><td>${fmt2(row.geom)}</td><td>${fmt2(row.arit)}</td><td>${fmt2(row.diff)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ─── Tab navigation ───────────────────────────────────────────────────────
+  function showTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ─── CSV download ─────────────────────────────────────────────────────────
+  function descargarCSV() {
+    if (!lastData.length) {
+      alert('No hay datos disponibles. Por favor, calcule primero los resultados.');
+      return;
+    }
+    let csv = 'Mes,Geometrico,Aritmetico,Diferencia\n';
+    lastData.forEach(r => {
+      csv += `${r.mes},${r.geom.toFixed(2)},${r.arit.toFixed(2)},${r.diff.toFixed(2)}\n`;
+    });
+    const p0 = document.getElementById('p0').value;
+    const n  = document.getElementById('n').value;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `inversion_p${p0}_n${n}.csv`;
+    a.click();
+  }
+
+  // ─── Run on load ──────────────────────────────────────────────────────────
+  calcular();
+</script>
+</body>
+</html>
